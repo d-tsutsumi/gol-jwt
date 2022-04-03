@@ -3,7 +3,10 @@ package controllers
 import (
 	"ambassador/src/database"
 	"ambassador/src/models"
+	"strconv"
+	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -59,6 +62,27 @@ func Login(c *fiber.Ctx) error {
 			"message": "wrong password",
 		})
 	}
-	return c.JSON(user)
+
+	payload := jwt.StandardClaims{
+		Subject:   strconv.Itoa(int(user.Id)),
+		ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
+	}
+
+	token, err := jwt.NewWithClaims(jwt.SigningMethodES256, payload).SignedString([]byte("secret"))
+
+	if err != nil {
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"message": "無効な入力",
+		})
+	}
+
+	cookie := fiber.Cookie{
+		Name:     "jwt",
+		Value:    token,
+		Expires:  time.Now().Add(time.Hour * 24),
+		HTTPOnly: true,
+	}
+	return c.JSON(cookie)
 
 }
