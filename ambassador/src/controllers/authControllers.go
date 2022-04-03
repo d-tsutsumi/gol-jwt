@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"ambassador/src/database"
+	"ambassador/src/middlewares"
 	"ambassador/src/models"
 	"strconv"
 	"time"
@@ -49,7 +50,7 @@ func Login(c *fiber.Ctx) error {
 	if user.Id == 0 {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"message": "無効な入力",
+			"message": "invalid input",
 		})
 	}
 
@@ -70,7 +71,7 @@ func Login(c *fiber.Ctx) error {
 	if err != nil {
 		c.Status(fiber.StatusBadRequest)
 		return c.JSON(fiber.Map{
-			"message": "無効な入力",
+			"message": "invalid input",
 		})
 	}
 
@@ -83,5 +84,29 @@ func Login(c *fiber.Ctx) error {
 
 	c.Cookie(&cookie)
 	return c.JSON(token)
+}
 
+func User(c *fiber.Ctx) error {
+
+	id, _ := middlewares.GetUserId(c)
+
+	var user models.User
+
+	database.DB.Where("id = ?", id).First(&user)
+
+	return c.JSON(user)
+}
+
+func Logout(c *fiber.Ctx) error {
+	cookie := fiber.Cookie{
+		Name:     "jwt",
+		Value:    "",
+		Expires:  time.Now().Add(-time.Hour),
+		HTTPOnly: true,
+	}
+	c.Cookie(&cookie)
+
+	return c.JSON(fiber.Map{
+		"message": "success",
+	})
 }
